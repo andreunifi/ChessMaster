@@ -42,7 +42,7 @@ class ChessPiece: public QLabel
 
         bool move(QLabel* destLabel);
 
-	private:
+    private:
 		int mPieceType;
 		int mPieceColor;
         QString mPieceName;

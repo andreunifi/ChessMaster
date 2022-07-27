@@ -1,9 +1,11 @@
 #ifndef CHESSBOARD_H
 #define CHESSBOARD_H
 
-#include <QWidget>
+#include "pngparser.h"
+#include <QFileDialog>
 #include <QHash>
 #include <QVector>
+#include <QWidget>
 
 class QLabel;
 class QMouseEvent;
@@ -16,7 +18,7 @@ class ChessBoard: public QWidget
 public:
     ChessBoard(QWidget* parent=0);
     ChessBoard(const ChessBoard&)=delete;
-    ChessBoard& operator =(const ChessBoard&)=delete;
+    bool isGameOn                            = false;
     virtual ~ChessBoard();
 
 private:
@@ -24,7 +26,7 @@ private:
 
     QHash<ChessPiece*, QLabel*> mPiecePositionHash;
 
-    bool isBlackTurn = true;
+    bool isBlackTurn          = false;
     static const int BoxCount = 8;
 
     QLabel*** mChessBoxes ;
@@ -34,6 +36,8 @@ private:
     void funcCreateChessPieces();
     bool funcValidatePieceMove( QLabel*, bool toKill=false);
     void mousePressEvent(QMouseEvent*) Q_DECL_OVERRIDE;
+    void handleLoadOpeningButton();
+    void loadfromdisk();
 };
 
 #endif

@@ -1,5 +1,6 @@
-#include <QApplication>
 #include "chessboard.h"
+#include "pngparser.h"
+#include <QApplication>
 
 int main(int argc, char** argv)
 {

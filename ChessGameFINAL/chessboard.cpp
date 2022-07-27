@@ -1,15 +1,19 @@
-#include <QDebug>
-#include "chesspiece.h"
 #include "chessboard.h"
-#include <QMouseEvent>
+#include "chesspiece.h"
+#include "pngparser.h"
+#include <iostream>
+#include <QDebug>
+#include <QFile>
 #include <QGridLayout>
+#include <QMouseEvent>
+#include <QPushButton>
 #include <QVBoxLayout>
 
-ChessBoard::ChessBoard(QWidget* parent):QWidget(parent), mChessBoxes(new QLabel**[BoxCount]),
-    mLastMoveLabel(new QLabel(this))
+ChessBoard::ChessBoard(QWidget *parent)
+    : QWidget(parent), mChessBoxes(new QLabel **[BoxCount]), mLastMoveLabel(new QLabel(this))
 {
     setGeometry(10, 10, 900, 700);
-    setWindowTitle("Chess Game");
+    setWindowTitle("Scacchi");
 
     QStringList colIndex;
     colIndex << "a" << "b" << "c" << "d" << "e" << "f" << "g" << "h";
@@ -17,17 +21,23 @@ ChessBoard::ChessBoard(QWidget* parent):QWidget(parent), mChessBoxes(new QLabel*
     QGridLayout* grid = new QGridLayout(this);
     grid->setSpacing(0);
 
-    //create chess boxes
+    //creazione delle chess boxes
     for(int i=0;i<BoxCount;i++)
     {
         mChessBoxes[i] = new QLabel*[BoxCount];
         for (int j=0;j<BoxCount;j++)
         {
             mChessBoxes[i][j] = new QLabel(this);
-            mChessBoxes[i][j]->setObjectName(QString::number(i)+":"+QString::number(j));
-            mChessBoxes[i][j]->setProperty("chessindex", colIndex.at(i)+QString::number(BoxCount-j));
+            mChessBoxes[i][j]->setObjectName(
+                QString::number(i) + ":" + QString::number(j)); //nome della label come indice ij
 
-            if( (i+j)%2 == 0)
+            mChessBoxes[i][j]->setProperty("chessindex",
+                                           QVariant::fromValue(
+                                               colIndex.at(i)
+                                               + QString::number(
+                                                   BoxCount - j))); //attributo contenente filacolonna
+            //qDebug() << mChessBoxes[i][j]->property("chessindex").toString();
+            if ((i + j) % 2 == 0)
                 mChessBoxes[i][j]->setStyleSheet("QLabel{background-color:#D2B48C};");
             else
                 mChessBoxes[i][j]->setStyleSheet("QLabel{background-color:#F0D9B5};");
@@ -41,80 +51,38 @@ ChessBoard::ChessBoard(QWidget* parent):QWidget(parent), mChessBoxes(new QLabel*
     mLastMoveLabel->setStyleSheet("QLabel{color: blue;}");
     mLastMoveLabel->setFont(QFont("PT Sans",16));
     grid->addWidget(mLastMoveLabel, BoxCount, 0, 1, -1, Qt::AlignVCenter|Qt::AlignLeft);
+    QPushButton *loadOpening = new QPushButton();
+    loadOpening->setText("Carica apertura");
+    connect(loadOpening, &QPushButton::released, this, &ChessBoard::handleLoadOpeningButton);
+    grid->addWidget(loadOpening, BoxCount, BoxCount, 1, Qt::AlignRight);
 }
-/*
-ChessBoard &ChessBoard::operator =(const ChessBoard &rhs)
+
+ChessBoard::~ChessBoard() {}
+
+void ChessBoard::handleLoadOpeningButton()
 {
-    if ( &rhs == this)
-        return *this;
+    if (!isGameOn)
+        return;
+    QFile file("positionsTEST.txt");
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return;
 
-    delete mPieceInFocus;
-    delete mLastMoveLabel;
-    //vector manages memory itself
-
-    for (int i=0; i<BoxCount;i++)
-    {
-        delete[] mChessBoxes[i];
+    QTextStream out(&file);
+    //out.setAutoDetectUnicode(true);
+    std::cout << "ok";
+    QHashIterator<ChessPiece *, QLabel *> i(mPiecePositionHash);
+    while (i.hasNext()) {
+        i.next();
+        out << i.key()->pieceName() + " " + i.value()->property("chessindex").toString() + " "
+                   + i.value()->objectName() + " " + i.value()->text() + "\n";
     }
-    delete[] mChessBoxes;
-    mChessBoxes = Q_NULLPTR;
 
-    QStringList colIndex;
-    colIndex << "a" << "b" << "c" << "d" << "e" << "f" << "g" << "h";
-
-    for(int i=0;i<BoxCount;i++)
-    {
-        mChessBoxes[i] = new QLabel*[BoxCount];
-        for (int j=0;j<BoxCount;j++)
-        {
-            mChessBoxes[i][j] = new QLabel(this);
-            mChessBoxes[i][j]->setObjectName(rhs.mChessBoxes[i][j]->objectName());
-            mChessBoxes[i][j]->setProperty("chessindex", rhs.mChessBoxes[i][j]->property("chessindex"));
-
-            if( (i+j)%2 == 0)
-                mChessBoxes[i][j]->setStyleSheet(rhs.mChessBoxes[i][j]->styleSheet());
-            else
-                mChessBoxes[i][j]->setStyleSheet(rhs.mChessBoxes[i][j]->styleSheet());
-        }
-    }
-    funcCreateChessPieces();
-}
-
-ChessBoard::ChessBoard(const ChessBoard &rhs):mChessBoxes(new QLabel**[BoxCount]),
-    mLastMoveLabel(new QLabel(this))
-{
-    QStringList colIndex;
-    colIndex << "a" << "b" << "c" << "d" << "e" << "f" << "g" << "h";
-    mPieceInFocus = rhs.mPieceInFocus;
-    mPiecePositionHash = rhs.mPiecePositionHash;
-    isBlackTurn = rhs.isBlackTurn;
-    for(int i=0;i<BoxCount;i++)
-    {
-        mChessBoxes[i] = new QLabel*[BoxCount];
-        for (int j=0;j<BoxCount;j++)
-        {
-            mChessBoxes[i][j] = new QLabel(this);
-            mChessBoxes[i][j]->setObjectName(rhs.mChessBoxes[i][j]->objectName());
-            mChessBoxes[i][j]->setProperty("chessindex", rhs.mChessBoxes[i][j]->property("chessindex"));
-
-            if( (i+j)%2 == 0)
-                mChessBoxes[i][j]->setStyleSheet(rhs.mChessBoxes[i][j]->styleSheet());
-            else
-                mChessBoxes[i][j]->setStyleSheet(rhs.mChessBoxes[i][j]->styleSheet());
-        }
-    }
-    mLastMoveLabel->setText(rhs.mLastMoveLabel->text());
-    mLastMoveLabel->setStyleSheet(rhs.mLastMoveLabel->styleSheet());
-    mLastMoveLabel->setFont(rhs.mLastMoveLabel->font());
-    funcCreateChessPieces();
-}
-*/
-ChessBoard::~ChessBoard()
-{
-}
-
+    file.close();
+    loadfromdisk();
+};
 void ChessBoard::funcCreateChessPieces()
 {
+    isGameOn = true;
     int col = 0; int row = BoxCount-1; int hashIndex = 0;
 
     //black pieces creation
@@ -130,7 +98,11 @@ void ChessBoard::funcCreateChessPieces()
 
     //bishop1
     col++;hashIndex++;
-    mChessPiece.push_back(new ChessPiece(ChessPiece::Bishop, ChessPiece::Black, "Black Bishop", "\u265D", mChessBoxes[row][col]));
+    mChessPiece.push_back(new ChessPiece(ChessPiece::Bishop,
+                                         ChessPiece::Black,
+                                         "Black Bishop",
+                                         "\u265D",
+                                         mChessBoxes[row][col]));
     mPiecePositionHash.insert(mChessPiece.at(hashIndex), mChessBoxes[row][col]);
 
     //king
@@ -215,10 +187,56 @@ void ChessBoard::funcCreateChessPieces()
         mChessPiece.push_back(new ChessPiece(ChessPiece::Pawn, ChessPiece::White, "White Pawn","\u2659", mChessBoxes[row][col]));
         mPiecePositionHash.insert(mChessPiece.at(hashIndex), mChessBoxes[row][col]);
     }
-
 }
 
-bool ChessBoard::funcValidatePieceMove( QLabel* destBox, bool toKill)
+void ChessBoard::loadfromdisk()
+{
+    int row       = 7;
+    int col       = 3;
+    int hashIndex = 0;
+    mChessPiece.clear();
+    mPiecePositionHash.clear();
+    //pulisce la scacchiera
+    for (int i = 0; i < BoxCount; i++) {
+        for (int j = 0; j < BoxCount; j++) {
+            mChessBoxes[i][j]->clear();
+        }
+    }
+    //riaggiunge i pezzi
+    /*
+    mChessPiece.push_back(new ChessPiece(ChessPiece::Rook,
+                                         ChessPiece::Black,
+                                         "Black Rook",
+                                         "\u265C",
+                                         mChessBoxes[row][col]));
+    mPiecePositionHash.insert(mChessPiece.at(hashIndex), mChessBoxes[row][col]);
+*/
+
+    QFileDialog *filedlg;
+    QString fname = filedlg->getOpenFileName(this);
+    QFile file(fname);
+
+    file.open(QFile::ReadOnly | QFile::Text);
+
+    QTextStream ReadFile(&file);
+    while (!ReadFile.atEnd()) {
+        QString str       = ReadFile.readLine();
+        QStringList list1 = str.split(QLatin1Char(' '));
+        for (int i = 0; i < list1.size(); i++) {
+            std::cout << list1.at(i).toStdString() + "\n";
+        }
+        QStringList rowcolumn = list1.at(3).split(QLatin1Char(':'));
+
+        mChessPiece.push_back(
+            new ChessPiece(PNGParser::convertQStringToPieceEnum(list1.at(1)),
+                           PNGParser::convertQStringToColorEnum(list1.at(0)),
+                           list1.at(0) + " " + list1.at(1),
+                           "\u2657",
+                           mChessBoxes[rowcolumn.at(0).toInt()][rowcolumn.at(1).toInt()]));
+    }
+}
+
+bool ChessBoard::funcValidatePieceMove(QLabel *destBox, bool toKill)
 {
     if ( !destBox)
         return false;

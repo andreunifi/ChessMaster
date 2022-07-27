@@ -7,6 +7,8 @@ QT += widgets
 CONFIG += c++11
 
 # Input
-HEADERS += chessboard.h chesspiece.h
-SOURCES += chessboard.cpp chesspiece.cpp main.cpp
+HEADERS += chessboard.h chesspiece.h \
+    pngparser.h
+SOURCES += chessboard.cpp chesspiece.cpp main.cpp \
+    pngparser.cpp
 RESOURCES +=
